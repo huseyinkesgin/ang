@@ -1,0 +1,183 @@
+<div class="bg-white rounded-lg shadow border border-orange-200">
+  <!-- Toolbar -->
+  <div class="p-4 border-b border-orange-200 flex justify-between items-center">
+    <div class="flex items-center space-x-4 flex-1">
+      <div class="w-32">
+        <select
+          [(ngModel)]="pageSize"
+          (ngModelChange)="onPageSizeChange($event)"
+          class="w-full px-3 h-9 border border-orange-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 text-xs"
+        >
+          <option [value]="5">5 kayıt</option>
+          <option [value]="10">10 kayıt</option>
+          <option [value]="20">20 kayıt</option>
+          <option [value]="50">50 kayıt</option>
+          <option [value]="100">100 kayıt</option>
+        </select>
+      </div>
+      <div class="flex-1 max-w-sm">
+        <input
+          type="text"
+          class="w-full px-3 h-9 border border-orange-300 rounded-md shadow-sm focus:ring-orange-500 focus:border-orange-500 text-xs"
+          placeholder="Ara..."
+          (input)="onSearch($event)"
+        >
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button
+        (click)="isColumnSettingsOpen = true"
+        class="px-4 py-2 bg-white border border-orange-300 text-gray-700 rounded-md hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-orange-500 text-xs"
+      >
+        Sütunları Düzenle
+      </button>
+      <button
+        (click)="addNew.emit()"
+        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xs"
+      >
+        Yeni Ekle
+      </button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-orange-200">
+      <thead class="bg-orange-50">
+        <tr cdkDropList cdkDropListOrientation="horizontal" (cdkDropListDropped)="drop($event)">
+          @for (column of visibleColumns; track column.field) {
+            <th
+              cdkDrag
+              [cdkDragDisabled]="!column.sortable"
+              class="px-3 h-7 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-x border-orange-200 cursor-move"
+              [class.cursor-pointer]="column.sortable"
+              (click)="$event.preventDefault(); onSort(column)"
+            >
+              <div class="flex items-center space-x-1">
+                <span class="drag-handle">⠿</span>
+                <span>{{ column.header }}</span>
+                @if (column.sortable) {
+                  <span class="text-gray-400">
+                    @if (sortField === column.field) {
+                      <span [class.rotate-180]="sortDirection === 'desc'">↑</span>
+                    } @else {
+                      <span>↕</span>
+                    }
+                  </span>
+                }
+              </div>
+            </th>
+          }
+          <th class="px-3 h-7 text-right text-xs border-x border-orange-200">İşlemler</th>
+        </tr>
+      </thead>
+
+      <tbody class="bg-white divide-y divide-orange-200">
+        @for (row of paginatedData; track row.id) {
+          <tr class="hover:bg-gray-50">
+            @for (column of visibleColumns; track column.field) {
+              <td class="px-3 h-7 whitespace-nowrap text-xs border-x border-orange-200">
+                @switch (column.type) {
+                  @case ('boolean') {
+                    <span 
+                      class="inline-flex px-2 py-1 text-xs font-semibold rounded-full"
+                      [class.bg-green-100]="row[column.field]"
+                      [class.text-green-800]="row[column.field]"
+                      [class.bg-red-100]="!row[column.field]"
+                      [class.text-red-800]="!row[column.field]"
+                    >
+                      {{ row[column.field] ? 'Aktif' : 'Pasif' }}
+                    </span>
+                  }
+                  @default {
+                    {{ row[column.field] }}
+                  }
+                }
+              </td>
+            }
+            <td class="px-3 h-7 whitespace-nowrap text-right text-xs font-medium space-x-2 border-x border-orange-200">
+              <button
+                (click)="edit.emit(row)"
+                class="text-indigo-600 hover:text-indigo-900"
+              >
+                Düzenle
+              </button>
+              <button
+                (click)="delete.emit(row)"
+                class="text-red-600 hover:text-red-900"
+              >
+                Sil
+              </button>
+            </td>
+          </tr>
+        }
+
+        @if (paginatedData.length === 0) {
+          <tr>
+            <td
+              [attr.colspan]="visibleColumns.length + 1"
+              class="px-3 h-7 text-center text-xs text-gray-500 border-x border-orange-200"
+            >
+              Gösterilecek veri bulunamadı.
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination -->
+  @if (totalPages > 1) {
+    <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-orange-200 sm:px-6">
+      <div>
+        <nav class="flex items-center space-x-2" aria-label="Pagination">
+          <button
+            [disabled]="currentPage === 1"
+            (click)="onPageChange(currentPage - 1)"
+            class="relative inline-flex items-center px-3 h-8 border border-orange-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-orange-50"
+            [class.opacity-50]="currentPage === 1"
+          >
+            Önceki
+          </button>
+
+          @for (page of pageNumbers(); track page) {
+            <button
+              (click)="onPageChange(page)"
+              [class]="page === currentPage ? 
+                'relative inline-flex items-center px-3 h-8 border border-orange-500 text-xs font-medium rounded-md text-white bg-orange-500' :
+                'relative inline-flex items-center px-3 h-8 border border-orange-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-orange-50'"
+            >
+              {{ page }}
+            </button>
+          }
+
+          <button
+            [disabled]="currentPage === totalPages"
+            (click)="onPageChange(currentPage + 1)"
+            class="relative inline-flex items-center px-3 h-8 border border-orange-300 text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-orange-50"
+            [class.opacity-50]="currentPage === totalPages"
+          >
+            Sonraki
+          </button>
+        </nav>
+      </div>
+      <div>
+        <p class="text-xs text-gray-700">
+          Toplam <span class="font-medium">{{ filteredData.length }}</span> kayıttan
+          <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+          -
+          <span class="font-medium">{{ Math.min(currentPage * pageSize, filteredData.length) }}</span>
+          arası gösteriliyor
+        </p>
+      </div>
+    </div>
+  }
+
+  <!-- Column Settings Modal -->
+  <app-column-settings-modal
+    [isOpen]="isColumnSettingsOpen"
+    [columns]="config?.columns || []"
+    (close)="isColumnSettingsOpen = false"
+    (columnsChange)="onColumnSettingsChange($event)"
+  ></app-column-settings-modal>
+</div>

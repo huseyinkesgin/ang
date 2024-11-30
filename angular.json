@@ -93,10 +93,14 @@
             "styles": [
               "src/styles.scss"
             ],
-            "scripts": []
+            "scripts": [],
+            "postcssConfig": "postcss.config.js"
           }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }
